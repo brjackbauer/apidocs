@@ -1,0 +1,350 @@
+FORMAT: 1A
+HOST: https://api.thegrid.io/
+
+# The Grid API
+
+# Group Site Management
+
+## Site information [/site]
+
+### List user websites [GET]
+
++ Response 200 (application/json)
+
+  + Body
+
+      ```
+      [
+      <!-- include(examples/site-minimal.json) -->
+      ]
+      ```
+
+### Create a website [POST]
+
++ Request (application/json)
+
+  **Note:** the repository must be in `the-domains` organization. The repository name can later be used for sharing content to the newly-created site.
+
+  + Body
+
+      ```
+      <!-- include(examples/site-without-owner.json) -->
+      ```
+
+  + Schema
+
+      ```
+      <!-- include(schema/site.json) -->
+      ```
+
++ Response 201
+
+  Site was successfully created
+
+  + Headers
+
+            Location: /site/61a23f6a-d438-49c3-a0b9-7cd5bb0fe177
+
++ Response 422
+
+  Missing site information
+
+  + Body
+
+## User website [/site/{id}]
+
++ Parameters
+  + id (required, string) - Site UUID
+
+### Get website details [GET]
+
++ Response 200 (application/json)
+
+  + Schema
+
+      ```
+      <!-- include(schema/site.json) -->
+      ```
+
+### Update website details [PUT]
+
++ Request (application/json)
+
+  + Body
+
+      ```
+      <!-- include(examples/site-with-config.json) -->
+      ```
+
+  + Schema
+
+      ```
+      <!-- include(schema/site.json) -->
+      ```
+
++ Response 200 (application/json)
+
+  + Schema
+
+      ```
+      <!-- include(schema/site.json) -->
+      ```
+
+## Website discovery [/site/discover{?url}]
+
+### Match URL to a website [GET]
+
++ Parameters
+  + url (required, string) - URL of the website
+
++ Response 302
+
+  + Headers
+
+            Location: /site/61a23f6a-d438-49c3-a0b9-7cd5bb0fe177
+
++ Response 404
+
+  No Grid site was found for the URL
+
+  + Body
+
+# Group Content Management
+
+## Share [/share]
+
+### Sharing content [POST]
+
+Users can share content to their websites. The shared items will be normalized and made available via the item API.
+
+There are typically three different things you can be sharing:
+* full article pages: share with URL
+* HTML fragments: selection or img tag. Share with content, type text/html and with the URL of the originating page
+* Uploaded files: image, word document, HTML file, Markdown file, etc. Share with multi-part upload, URL and MIME type needed
+
++ Request with JSON payload (application/json)
+
+  + Body
+
+      ```
+      <!-- include(examples/share-url-only.json) -->
+      ```
+
+  + Schema
+
+      ```
+      <!-- include(schema/share.json) -->
+      ```
+
+
++ Request with file upload (multipart/form-data)
+
+  For images and other files the content is a file sent via multipart/form-data. If there is no relevant URL for the content, it is a good idea to generate a UUID URI.
+
+  ```
+  formData = new FormData()
+  formData.append 'url', 'content://'
+  formData.append 'type', file.type
+  formData.append 'content', file
+  ```
+
+  + Body
+
++ Response 202
+
+  Sharing was successful and will be processed.
+
+  + Body
+
++ Response 422
+
+  Missing required parameters
+
+  + Body
+
++ Response 403
+
+  Not allowed to share to the specified website
+
+  + Body
+
+## Items list [/item]
+
+### Retrieve user's content items [GET]
+
+When an item is being worked on by a user it is available via the API.
+
++ Response 200 (application/json)
+
+### Create an item [POST]
+
++ Response 201
+
+  + Headers
+
+            Location: /item/b8838e11-1d97-4799-85d8-1aafec52e927
+
++ Response 422
+
+  Missing item information
+
+  + Body
+
+## Item [/item/{id}]
+
++ Parameters
+  + id (required, string) - Site UUID
+
+### Retrieve an item [GET]
+
++ Response 200 (application/json)
+
+  + Schema
+
+      ```
+      <!-- include(schema/item.json) -->
+      ```
+
++ Response 404
+
+### Update item [PUT]
+
++ Response 200 (application/json)
+
+  + Schema
+
+      ```
+      <!-- include(schema/item.json) -->
+      ```
+
++ Response 422
+
+  Missing item information
+
+  + Body
+
+### Update item metadata [PATCH]
+
++ Response 204
+
++ Response 422
+
+  Missing item information
+
+  + Body
+
+### Remove item [DELETE]
+
++ Response 204
+
+## Publishing [/publish]
+
+### Publish an item to sites [POST]
+
++ Request (application/json)
+
+  + Body
+
+      ```
+      <!-- include(examples/publish-with-sites.json) -->
+      ```
+
+  + Schema
+
+      ```
+      <!-- include(schema/publish.json) -->
+      ```
+
++ Response 202
+
+## Unpublishing [/unpublish]
+
+### Unpublish an item from sites [POST]
+
++ Request (application/json)
+
+  + Body
+
+      ```
+      <!-- include(examples/publish-with-sites.json) -->
+      ```
+
+  + Schema
+
+      ```
+      <!-- include(schema/publish.json) -->
+      ```
+
++ Response 202
+
+# Group Client Application
+
+Client application registration allows a Grid app to receive notifications about changes to data.
+
+The notifications sent to clients use the [notifications schema](schema/notification.json).
+
+When reacting to an action the client needs to make the request using the regular Bearer token.
+
+## User clients [/client]
+
+### List user's active client apps [GET]
+
++ Response 200 (application/json)
+
+  + Body
+
+      ```
+      [
+      <!-- include(examples/client-gcm.json) -->
+      <!-- include(examples/client-apn.json) -->
+      ]
+      ```
+
+### Register a new client app [POST]
+
++ Request (application/json)
+
+  + Body
+
+      ```
+      <!-- include(examples/client-gcm.json) -->
+      ```
+
+  + Schema
+
+      ```
+      <!-- include(schema/client.json) -->
+      ```
+
++ Response 201
+
+  + Headers
+
+            Location: /client/61a23f6a-d438-49c3-a0b9-7cd5bb0fe177
+
+## Client app [/client/{id}]
+
++ Parameters
+  + id (required, string) - Site UUID
+
+### Remove a client app [DELETE]
+
++ Response 204
+
+## Notifications testing [/molly/repeat]
+
+### Send a test notification [POST]
+
+For development purposes, you can make Molly talk to you over the registered notification channels (like Google Cloud Messaging).
+
+A push message will be sent to the user's all registered clients.
+
++ Request (application/json)
+
+  + Schema
+
+      ```
+      <!-- include(schema/notification.json) -->
+      ```
+
++ Response 202

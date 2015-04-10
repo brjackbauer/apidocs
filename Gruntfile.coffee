@@ -1,3 +1,5 @@
+path = require 'path'
+
 module.exports = ->
   # Project configuration
   pkg = @file.readJSON 'package.json'
@@ -15,9 +17,16 @@ module.exports = ->
           dest: 'schema/'
         ]
 
-    exec:
-      schemas_to_html:
-        command: './node_modules/json-schema-docs-generator/bin/generate.js'
+    aglio:
+      blueprint:
+        files:
+          'dist/index.html': ['blueprint/index.apib']
+          'dist/authentication.html': ['blueprint/authentication.apib']
+          'dist/passport.html': ['blueprint/passport.apib']
+          'dist/api.html': ['blueprint/api.apib']
+        options:
+          includePath: __dirname
+          theme: 'slate'
 
     # Coding standards
     yamllint:
@@ -42,6 +51,14 @@ module.exports = ->
         files: [
           expand: true, src: ['schema/*.json'], dest: 'dist/', filter: 'isFile'
         ]
+      cname:
+        files: [
+          src: ['CNAME'], dest: 'dist/'
+        ]
+      favicon:
+        files: [
+          src: ['favicon.ico'], dest: 'dist/'
+        ]
 
     'gh-pages':
       options:
@@ -57,7 +74,7 @@ module.exports = ->
 
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-yaml'
-  @loadNpmTasks 'grunt-exec'
+  @loadNpmTasks 'grunt-aglio'
   @loadNpmTasks 'grunt-contrib-copy'
 
   # Grunt plugins used for testing
@@ -68,12 +85,26 @@ module.exports = ->
   # Grunt plugins used for deploying
   @loadNpmTasks 'grunt-gh-pages'
 
+  # Custom task for generating JSON files for valid examples to be included in Blueprint
+  @registerTask 'build_examples', 'Create files for examples', =>
+    examples = @file.expand ['examples/*.yml']
+    examples.forEach (e) =>
+      data = @file.readYAML e
+      return unless data
+      basename = path.basename e, '.yml'
+      for d in data
+        continue unless d._name
+        filename = "examples/#{basename}-#{d._name}.json"
+        @file.write filename, JSON.stringify d._data, null, 2
+        @log.writeln "Created example file '#{filename}'"
+
   # Our local tasks
   @registerTask 'build', 'Build', (target = 'all') =>
     @task.run 'yaml'
     @file.mkdir 'dist'
-    @task.run 'exec'
     @task.run 'copy'
+    @task.run 'build_examples'
+    @task.run 'aglio'
 
   @registerTask 'test', 'Build and run tests', (target = 'all') =>
     @task.run 'coffeelint'
